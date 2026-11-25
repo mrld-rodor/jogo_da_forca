@@ -158,4 +158,4 @@ class PopupOpcoes:
         pygame.draw.rect(surf, (0, 150, 255) if not selecionado else (0, 200, 255), rect, 2 if selecionado else 1, border_radius=4)
         if marcado:
             pygame.draw.line(surf, (0, 100, 200), (x+4, y+10), (x+8, y+15), 3)
-            pygame.draw.line(surf, (0, 100, 200), (x+8, y+15), (x+16, y+4), 3)
+            pygame.draw.line(surf, (0, 100, 200), (x+8, y+15), (x+16, y+4), 3)  
