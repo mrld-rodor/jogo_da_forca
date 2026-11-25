@@ -1,34 +1,54 @@
-# Lógica reutilizável do jogo da forca para interfaces gráficas e web
+# jogo_forca.py
 import random
 import string
+import unicodedata
+
+
+def _sem_acento(texto):
+    return ''.join(
+        c for c in unicodedata.normalize('NFD', texto)
+        if unicodedata.category(c) != 'Mn'
+    )
+
 
 class JogoForca:
-    def __init__(self, lista_palavra):
-        self.palavra = random.choice(lista_palavra).upper()
-        while '_' in self.palavra or ' ' in self.palavra:
-            self.palavra = random.choice(lista_palavra).upper()
-        self.letras_palavra = list(self.palavra)
+    def __init__(self, banco_palavras, dificuldade):
+        self.dificuldade = dificuldade
+        lista = banco_palavras[dificuldade]
+        self.palavra_original = random.choice(list(lista.keys())).upper()
+        self.dicas = list(lista[self.palavra_original])
+        self.palavra_normalizada = _sem_acento(self.palavra_original)
+        self.letras_normalizadas = list(self.palavra_normalizada)
         self.letras_escolhidas = set()
         self.erros = 0
         self.max_erros = 6
+        self.dicas_usadas = 0
+        self.max_dicas = 2
 
     def tentar_letra(self, letra):
-        letra = letra.upper()
-        if letra in string.ascii_uppercase and letra not in self.letras_escolhidas:
-            self.letras_escolhidas.add(letra)
-            if letra in self.letras_palavra:
-                self.letras_palavra = [l for l in self.letras_palavra if l != letra]
-                return True
-            else:
-                self.erros += 1
-                return False
-        return None  # Letra inválida ou já escolhida
+        letra = _sem_acento(letra).upper()
+        if letra not in string.ascii_uppercase:
+            return None
+        if letra in self.letras_escolhidas:
+            return None
+        self.letras_escolhidas.add(letra)
+        if letra in self.letras_normalizadas:
+            return True
+        else:
+            self.erros += 1
+            return False
 
     def palavra_atual(self):
-        return [letra if letra in self.letras_escolhidas else '_' for letra in self.palavra]
+        resultado = []
+        for letra_original, letra_norm in zip(self.palavra_original, self.letras_normalizadas):
+            if letra_norm in self.letras_escolhidas:
+                resultado.append(letra_original)
+            else:
+                resultado.append('_')
+        return resultado
 
     def venceu(self):
-        return len(self.letras_palavra) == 0
+        return all(l in self.letras_escolhidas for l in self.letras_normalizadas)
 
     def perdeu(self):
         return self.erros >= self.max_erros
@@ -40,4 +60,16 @@ class JogoForca:
         return sorted(self.letras_escolhidas)
 
     def get_palavra(self):
-        return self.palavra
+        return self.palavra_original
+
+    def pode_pedir_dica(self):
+        if self.dicas_usadas >= self.max_dicas:
+            return False
+        return not self.finalizado()
+
+    def pedir_dica(self):
+        if not self.pode_pedir_dica():
+            return None
+        texto_dica = self.dicas[self.dicas_usadas]
+        self.dicas_usadas += 1
+        return texto_dica

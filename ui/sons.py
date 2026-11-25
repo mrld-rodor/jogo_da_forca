@@ -1,97 +1,82 @@
+# ui/sons.py
 import pygame
-import numpy as np
+import math
+import array
 
 class GerenciadorSons:
     def __init__(self):
-        try:
-            pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
-        except pygame.error:
-            print("Aviso: Sistema de áudio não encontrado. O jogo rodará sem som.")
-            self.ativo = False
-            return
-            
-        self.ativo = True
-        self.mudo_efeitos = False
+        pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
+        
+        self.volume_musica = 0.5
+        self.volume_efeitos = 0.7
         self.mudo_musica = False
-        
-        # Volumes iniciais (0.0 a 1.0)
-        self.volume_efeitos = 0.5
-        self.volume_musica = 0.3
-        
-        self.sons = {}
+        self.mudo_efeitos = False
+        self.efeitos = {}
+        self.musica = None
         self._gerar_sons()
-        self._gerar_musica()
 
-    def _criar_som(self, frequencias, duracao, volume=0.3, tipo='senoide'):
-        sample_rate = 44100
-        n_samples = int(sample_rate * duracao)
-        t = np.linspace(0, duracao, n_samples, False)
-        
-        onda = np.zeros(n_samples)
-        for freq in frequencias:
-            if tipo == 'senoide':
-                onda += np.sin(freq * t * 2 * np.pi)
-            elif tipo == 'quadrada':
-                onda += np.sign(np.sin(freq * t * 2 * np.pi))
-                
-        onda /= len(frequencias)
-        
-        envelope = np.ones(n_samples)
-        fade_samples = int(sample_rate * 0.05)
-        envelope[:fade_samples] = np.linspace(0, 1, fade_samples)
-        envelope[-fade_samples:] = np.linspace(1, 0, fade_samples)
-        onda *= envelope
-        
-        onda_int = (onda * 32767 * volume).astype(np.int16)
-        array_estereo = np.column_stack((onda_int, onda_int))
-        
-        return pygame.sndarray.make_sound(array_estereo)
+    def _gerar_tom(self, frequencia, duracao_ms, volume=0.5):
+        """Gera uma nota simples (estéreo)."""
+        taxa = 44100
+        n_amostras = int(taxa * (duracao_ms / 1000.0))
+        amostras = array.array('h')
+        for i in range(n_amostras):
+            t = i / taxa
+            # Envelope para evitar cliques
+            env = math.exp(-3 * t) if duracao_ms < 200 else 1.0
+            val = int(32767 * volume * env * math.sin(2 * math.pi * frequencia * t))
+            amostras.append(val)  # L
+            amostras.append(val)  # R
+        return pygame.mixer.Sound(buffer=amostras.tobytes())
 
     def _gerar_sons(self):
-        self.sons['acerto'] = self._criar_som([523.25, 659.25], 0.1, volume=0.2, tipo='senoide')
-        self.sons['erro'] = self._criar_som([196.00, 130.81], 0.25, volume=0.3, tipo='quadrada')
-        self.sons['vitoria'] = self._criar_som([523.25, 659.25, 783.99, 1046.50], 0.6, volume=0.3, tipo='senoide')
-        self.sons['derrota'] = self._criar_som([130.81, 155.56, 196.00], 0.8, volume=0.3, tipo='quadrada')
-
-    def _gerar_musica(self):
-        """Gera uma pequena melodia em loop para o fundo."""
-        sample_rate = 44100
-        # Uma sequência de notas simples (Dó, Mi, Sol, Dó oitava acima, Sol, Mi)
-        notas_freq = [261.63, 329.63, 392.00, 523.25, 392.00, 329.63]
-        duracao_nota = 0.3
-        n_samples_nota = int(sample_rate * duracao_nota)
-        
-        onda_total = np.array([])
-        t_nota = np.linspace(0, duracao_nota, n_samples_nota, False)
-        
-        for freq in notas_freq:
-            nota = np.sin(freq * t_nota * 2 * np.pi)
-            # Envelope para não estalar
-            envelope = np.ones(n_samples_nota)
-            fade = int(sample_rate * 0.02)
-            envelope[:fade] = np.linspace(0, 1, fade)
-            envelope[-fade:] = np.linspace(1, 0, fade)
-            onda_total = np.concatenate((onda_total, nota * envelope))
-            
-        onda_int = (onda_total * 32767 * 0.2).astype(np.int16)
-        array_estereo = np.column_stack((onda_int, onda_int))
-        
-        self.musica_fundo = pygame.sndarray.make_sound(array_estereo)
-        self.musica_fundo.set_volume(self.volume_musica)
+        # Efeitos
+        self.efeitos['acerto'] = self._gerar_tom(880, 80, self.volume_efeitos)
+        self.efeitos['erro'] = self._gerar_tom(220, 120, self.volume_efeitos)
+        self.efeitos['vitoria'] = self._gerar_tom(1046, 250, self.volume_efeitos)
+        self.efeitos['derrota'] = self._gerar_tom(130, 300, self.volume_efeitos)
 
     def iniciar_musica(self):
-        if self.ativo and not self.mudo_musica:
-            pygame.mixer.Channel(1).play(self.musica_fundo, loops=-1)
+        """Gera uma melodia simples em loop."""
+        taxa = 44100
+        # Melodia: Dó, Mi, Sol, Mi (frequências em Hz)
+        notas = [261.63, 329.63, 392.00, 329.63]
+        duracao_nota_ms = 250
+        amostras = array.array('h')
 
-    def atualizar_volumes(self):
-        """Aplica os volumes atuais."""
-        if not self.ativo: return
-        if self.mudo_musica:
-            pygame.mixer.Channel(1).set_volume(0)
-        else:
-            pygame.mixer.Channel(1).set_volume(self.volume_musica)
+        for freq in notas:
+            n_amostras = int(taxa * (duracao_nota_ms / 1000.0))
+            for i in range(n_amostras):
+                t = i / taxa
+                # Envelope suave para a nota
+                env = math.exp(-2 * t) if i > n_amostras - 1000 else 1.0
+                val = int(32767 * self.volume_musica * 0.3 * env * math.sin(2 * math.pi * freq * t))
+                amostras.append(val)
+                amostras.append(val)
 
-    def tocar(self, nome):
-        if self.ativo and not self.mudo_efeitos and nome in self.sons:
-            self.sons[nome].set_volume(self.volume_efeitos)
-            self.sons[nome].play()
+        self.musica = pygame.mixer.Sound(buffer=amostras.tobytes())
+        self.musica.set_volume(0.0 if self.mudo_musica else self.volume_musica)
+        self.musica.play(loops=-1)
+
+    def tocar(self, nome_som):
+        if nome_som in self.efeitos and not self.mudo_efeitos:
+            self.efeitos[nome_som].play()
+
+    # ------------------------------------------------------------------
+    def set_volume_musica(self, volume):
+        self.volume_musica = max(0.0, min(1.0, volume))
+        self.mudo_musica = (self.volume_musica == 0.0)
+        if self.musica:
+            self.musica.set_volume(0.0 if self.mudo_musica else self.volume_musica)
+
+    def set_volume_efeitos(self, volume):
+        self.volume_efeitos = max(0.0, min(1.0, volume))
+        self.mudo_efeitos = (self.volume_efeitos == 0.0)
+        for som in self.efeitos.values():
+            som.set_volume(0.0 if self.mudo_efeitos else self.volume_efeitos)
+
+    def get_volume_musica(self):
+        return self.volume_musica
+
+    def get_volume_efeitos(self):
+        return self.volume_efeitos
