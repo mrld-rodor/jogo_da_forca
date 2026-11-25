@@ -1,0 +1,17 @@
+FORCA – ASSETS PARA PYGAME (PNG com transparência)
+
+backgrounds/  bg_menu.png, bg_game.png, bg_desk.png (1280x720)
+buttons/      btn_[yellow|white|pink|green]_[normal|hover|pressed].png (260x84, sem texto)
+              btn_small_*  (170x70) | btn_disabled.png
+              btn_round_[play|pause|sound|mute|gear|home|hint|trophy|close]_[normal|pressed].png (80x86)
+keys/         key_normal / key_hover / key_ok / key_bad / key_disabled (64x76, sem letra)
+hangman/      stage_0..6.png (400x400) – 0 a 6 erros
+ui/           panel_large/medium/small/spine, ribbon_*, logo_forca, slot_empty,
+              bar_bg + bar_fill, divider*, toast
+table/        table_header, table_row, table_row_alt, table_row_me, table_footer (600 px de largura)
+icons/        icon_*.png (128x128) incl. heart_full, heart_empty, star
+decor/        pencil.png (600x180), eraser.png (300x180)
+fonts/        Poppins-Bold.ttf (licença OFL) – use para os textos
+
+Dica: os textos (letras, nomes, pontos) são desenhados pelo pygame por cima das imagens.
+Rode exemplo_menu.py (dentro desta pasta) para ver o menu funcionando.
