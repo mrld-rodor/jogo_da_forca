@@ -1,19 +1,48 @@
 # ui/sons.py
+import os
+import sys
 import pygame
 import math
 import array
 
+
+def _iniciar_mixer():
+    """Tenta iniciar o audio com varios drivers. Devolve True se conseguiu.
+
+    No Windows o driver por defeito (WASAPI) falha em alguns PCs
+    ("WASAPI can't initialize audio client"), por isso tentamos alternativas.
+    """
+    drivers = [None]
+    if sys.platform == "win32":
+        drivers += ["directsound", "winmm"]
+
+    for driver in drivers:
+        try:
+            if pygame.mixer.get_init():
+                pygame.mixer.quit()
+            if driver:
+                os.environ["SDL_AUDIODRIVER"] = driver
+            pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
+            return True
+        except pygame.error as e:
+            print(f"[AVISO] Audio indisponivel com driver {driver or 'padrao'}: {e}")
+    return False
+
+
 class GerenciadorSons:
     def __init__(self):
-        pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
-        
         self.volume_musica = 0.5
         self.volume_efeitos = 0.7
         self.mudo_musica = False
         self.mudo_efeitos = False
         self.efeitos = {}
         self.musica = None
-        self._gerar_sons()
+        # Se nao houver audio, o jogo continua a funcionar sem som.
+        self.ativo = _iniciar_mixer()
+        if self.ativo:
+            self._gerar_sons()
+        else:
+            print("[AVISO] O jogo vai correr sem som.")
 
     def _gerar_tom(self, frequencia, duracao_ms, volume=0.5):
         """Gera uma nota simples (estéreo)."""
@@ -38,6 +67,8 @@ class GerenciadorSons:
 
     def iniciar_musica(self):
         """Gera uma melodia simples em loop."""
+        if not self.ativo:
+            return
         taxa = 44100
         # Melodia: Dó, Mi, Sol, Mi (frequências em Hz)
         notas = [261.63, 329.63, 392.00, 329.63]
@@ -59,7 +90,7 @@ class GerenciadorSons:
         self.musica.play(loops=-1)
 
     def tocar(self, nome_som):
-        if nome_som in self.efeitos and not self.mudo_efeitos:
+        if self.ativo and nome_som in self.efeitos and not self.mudo_efeitos:
             self.efeitos[nome_som].play()
 
     # ------------------------------------------------------------------
