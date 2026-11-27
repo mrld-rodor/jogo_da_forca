@@ -7,10 +7,10 @@ import os
 from palavras import BANCO_PALAVRAS
 from jogo_forca import JogoForca
 from ui.telas import TelaInicio
-from ui.popup import Popup, PopupOpcoes, PopupRegras, PopupDificuldade
+from ui.popup import Popup, PopupOpcoes, PopupRegras, PopupDificuldade, PopupFimDeJogo, PopupDica
 from config import (
     BRANCO, PRETO, VERMELHO, VERDE, CINZA_MEDIO,
-    get_fontes, get_layout, carregar_imagem
+    get_fontes, get_layout, carregar_imagem, ASSETS_DIR
 )
 from ui.efeitos import gradiente_animado, efeito_flashes
 from ui.forca import ForcaDesenhavel
@@ -65,17 +65,14 @@ class BotaoIcone:
 
 def mostrar_creditos() -> None:
     popup = Popup(1000, 500, fonte_pequena_popup, fonte_pequena_popup, (240, 240, 240), PRETO, PRETO)
-    linhas = [
-        'Desenvolvido por:', 'Amiraldo Almeida',
-        'Python 3 + pygame', 'Jogo da Forca - 2025',
-        'Objetivo:', 'Descubra a palavra secreta antes de ser enforcado!'
-    ]
+    linhas = ['Desenvolvido por:', 'Amiraldo Almeida', 'Python 3 + pygame', 'Jogo da Forca - 2025', 'Objetivo:', 'Descubra a palavra secreta antes de ser enforcado!']
     popup.mostrar(tela, '', linhas, 'Pressione qualquer tecla para fechar')
 
 
-def mostrar_opcoes() -> None:
+def mostrar_opcoes() -> str:
+    """Retorna 'fechar', 'inicio' ou 'dificuldade'."""
     popup = PopupOpcoes(int(LARGURA * 0.70), int(ALTURA * 0.85), fonte_popup, fonte_pequena_popup)
-    popup.mostrar(tela, sons)
+    return popup.mostrar(tela, sons)
 
 
 def tela_inicio() -> str:
@@ -176,69 +173,82 @@ class JogoForcaApp:
             icon_path=os.path.join('icons', 'icon_gear.png')
         )
 
+    def _desenhar_texto_quebrado(self, texto, fonte, cor, centro_x, y_inicial, largura_max):
+        palavras = texto.split(' ')
+        linhas = []
+        linha_atual = ""
+        for p in palavras:
+            teste = (linha_atual + " " + p).strip()
+            if fonte.size(teste)[0] <= largura_max:
+                linha_atual = teste
+            else:
+                if linha_atual: linhas.append(linha_atual)
+                linha_atual = p
+        if linha_atual: linhas.append(linha_atual)
+
+        y = y_inicial
+        for linha in linhas:
+            txt = fonte.render(linha, True, cor)
+            tela.blit(txt, (centro_x - txt.get_width() // 2, y))
+            y += txt.get_height() + 5
+        return y
+
     def _desenhar_palavra(self, jogo):
         layout = self.layout
         letras = jogo.palavra_atual()
         n = len(letras)
 
-        # --- LÓGICA DE REDIMENSIONAMENTO INTELIGENTE ---
-        # Define o espaço máximo que a palavra pode ocupar (do meio da tela até a borda direita)
-        largura_maxima = layout['x_palavra_max'] - layout['x_palavra_min']
+        # CÁLCULO À PROVA DE FALHAS: Centro fixado em 52% da tela
+        centro_x = int(self.largura * 0.52)
         
-        # Tenta usar o tamanho de fonte padrão (72)
+        # Largura máxima que a palavra pode ter para não invadir os lados
+        largura_maxima = int(self.largura * 0.40)
+        
         tamanho_fonte = 72
-        espaco_letras = 20
+        espaco_letras = 15 
         
         while True:
-            fonte_teste = pygame.font.Font(os.path.join(os.path.dirname(__file__), "forca_assets", "fonts", "Poppins-Bold.ttf"), tamanho_fonte)
-            larguras = [max(fonte_teste.size(l)[0], 40) for l in letras]
+            fonte_teste = pygame.font.Font(os.path.join(ASSETS_DIR, "fonts", "Poppins-Bold.ttf"), tamanho_fonte)
+            larguras = [max(fonte_teste.size(l)[0], 30) for l in letras]
             largura_total = sum(larguras) + espaco_letras * (n - 1)
             
-            # Se couber no espaço máximo, paramos
             if largura_total <= largura_maxima:
                 break
             
-            # Se não couber, diminuímos a fonte e o espaçamento
-            tamanho_fonte -= 4
-            espaco_letras = max(5, espaco_letras - 2)
+            tamanho_fonte -= 2
+            espaco_letras = max(5, espaco_letras - 1)
             
-            # Limite de segurança para não ficar ilegível
-            if tamanho_fonte < 24:
+            if tamanho_fonte < 20:
                 break
         
-        fonte_final = pygame.font.Font(os.path.join(os.path.dirname(__file__), "forca_assets", "fonts", "Poppins-Bold.ttf"), tamanho_fonte)
+        fonte_final = pygame.font.Font(os.path.join(ASSETS_DIR, "fonts", "Poppins-Bold.ttf"), tamanho_fonte)
         
-        # Recalcula com a fonte final
         larguras = [max(fonte_final.size(l)[0], 30) for l in letras]
         largura_total = sum(larguras) + espaco_letras * (n - 1)
         
-        # CENTRALIZAÇÃO EXATA: 
-        # O centro será o próprio centro da zona de texto, limitado para não invadir o botão de opções.
-        x_inicio = layout['x_textos_centro'] - largura_total // 2
-        y_base = layout['y_palavra']
+        # Centraliza a palavra no centro_x definido
+        x_inicio = centro_x - (largura_total // 2)
+        
+        # Desce a palavra 40px
+        y_base = layout['y_palavra'] + 40
 
         x = x_inicio
         for i, letra in enumerate(letras):
-            # Desenha a letra se já foi descoberta
             if letra != '_':
                 texto = fonte_final.render(letra, True, PRETO)
                 tela.blit(texto, (x + (larguras[i] - texto.get_width()) // 2, y_base - texto.get_height() + 10))
             
-            # Desenha o traço
             linha_y = y_base + 20
             pygame.draw.line(tela, PRETO, (x, linha_y), (x + larguras[i], linha_y), 4)
             x += larguras[i] + espaco_letras
 
     def _desenhar_hud(self, jogo, fim):
-        # 1. Botão de Opções (Topo Direito)
         self.btn_opcoes_hud.desenhar(self.tela)
         txt_op = self.fonte_pequena.render("Opções", True, PRETO)
-        
         pos_x_op = self.btn_opcoes_hud.rect.left - txt_op.get_width() - 15
         pos_y_op = self.btn_opcoes_hud.rect.centery - txt_op.get_height() // 2
         tela.blit(txt_op, (pos_x_op, pos_y_op))
 
-        # 2. Botão de Dica (Base Direita)
         if not fim:
             self.btn_dica.desenhar(self.tela)
             
@@ -257,100 +267,149 @@ class JogoForcaApp:
         tela_abertura()
         while True:
             dificuldade = tela_inicio()
-            jogo = JogoForca(BANCO_PALAVRAS, dificuldade)
-            fim = False
-            aviso = ''
-            som_fim_tocado = False
-
+            
+            # Loop Principal da Partida
             while True:
-                tela.blit(bg_game, (0, 0))
-                layout = self.layout
+                jogo = JogoForca(BANCO_PALAVRAS, dificuldade)
+                fim = False
+                som_fim_tocado = False
+                sair_para_menu = False
+                sair_para_dificuldade = False
 
-                self.forca_ui.desenhar(tela, jogo.erros)
-                self._desenhar_palavra(jogo)
+                while not fim:
+                    tela.blit(bg_game, (0, 0))
+                    layout = self.layout
 
-                letras_str = ' '.join(jogo.letras_usadas()) if jogo.letras_usadas() else '—'
-                texto_usadas = self.fonte_pequena.render(f'Letras usadas: {letras_str}', True, PRETO)
-                tela.blit(texto_usadas, (layout['x_textos_centro'] - texto_usadas.get_width() // 2, layout['y_letras']))
+                    self.forca_ui.desenhar(tela, jogo.erros)
+                    self._desenhar_palavra(jogo)
 
-                if not fim:
+                    letras_str = ' '.join(jogo.letras_usadas()) if jogo.letras_usadas() else '—'
+                    texto_completo = f'Letras usadas: {letras_str}'
+                    
+                    self._desenhar_texto_quebrado(
+                        texto_completo, self.fonte_pequena, PRETO, 
+                        layout['x_textos_centro'], layout['y_letras'], layout['largura_max_texto']
+                    )
+
                     texto_input = self.fonte_pequena.render('Digite uma letra:', True, PRETO)
                     tela.blit(texto_input, (layout['x_textos_centro'] - texto_input.get_width() // 2, layout['y_input']))
-                    
-                    if aviso:
-                        texto_aviso = self.fonte_pequena.render(aviso, True, VERMELHO)
-                        tela.blit(texto_aviso, (layout['x_textos_centro'] - texto_aviso.get_width() // 2, layout['y_aviso']))
 
-                if jogo.venceu():
-                    if not som_fim_tocado:
-                        sons.tocar('vitoria')
-                        som_fim_tocado = True
-                    fim = True
-                elif jogo.perdeu():
-                    if not som_fim_tocado:
-                        sons.tocar('derrota')
-                        som_fim_tocado = True
-                    fim = True
+                    self._desenhar_hud(jogo, fim)
+                    pygame.display.flip()
 
-                if fim:
-                    msg = 'Parabéns! Você venceu!' if jogo.venceu() else f'Você perdeu! Palavra: {jogo.get_palavra()}'
-                    cor_msg = VERDE if jogo.venceu() else VERMELHO
-                    txt_msg = self.fonte_pequena.render(msg, True, cor_msg)
-                    tela.blit(txt_msg, (layout['x_textos_centro'] - txt_msg.get_width() // 2, layout['y_input']))
-                    
-                    txt_restart = self.fonte_pequena.render('Clique para jogar novamente', True, PRETO)
-                    tela.blit(txt_restart, (layout['x_textos_centro'] - txt_restart.get_width() // 2, layout['y_aviso']))
+                    for evento in pygame.event.get():
+                        if evento.type == pygame.QUIT:
+                            pygame.quit()
+                            sys.exit()
 
-                self._desenhar_hud(jogo, fim)
-                pygame.display.flip()
-
-                for evento in pygame.event.get():
-                    if evento.type == pygame.QUIT:
-                        pygame.quit()
-                        sys.exit()
-
-                    if evento.type == pygame.KEYDOWN:
-                        if not fim:
+                        if evento.type == pygame.KEYDOWN:
                             if evento.key == pygame.K_ESCAPE:
                                 pygame.quit()
                                 sys.exit()
                             elif pygame.K_a <= evento.key <= pygame.K_z:
                                 letra = chr(evento.key).upper()
                                 if letra in jogo.letras_usadas():
-                                    aviso = f'A letra "{letra}" já foi usada!'
                                     sons.tocar('erro')
                                 else:
                                     acertou = jogo.tentar_letra(letra)
-                                    aviso = ''
                                     if acertou:
                                         sons.tocar('acerto')
                                     else:
                                         sons.tocar('erro')
-                        else:
-                            if evento.key == pygame.K_ESCAPE:
-                                pygame.quit()
-                                sys.exit()
 
-                    if evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
-                        if self.btn_opcoes_hud.clicado(evento):
-                            mostrar_opcoes()
-                        elif not fim and self.btn_dica.clicado(evento):
-                            texto_dica = jogo.pedir_dica()
-                            if texto_dica is None:
-                                aviso = 'Você já usou todas as dicas!'
-                                sons.tocar('erro')
-                            else:
-                                aviso = f'Dica: {texto_dica}'
-                                sons.tocar('acerto')
-                        elif fim and self._clicou_reiniciar(evento):
+                        if evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
+                            if self.btn_opcoes_hud.clicado(evento):
+                                # CHAMA O POPUP DE OPÇÕES E TRATA O RETORNO
+                                acao_opc = mostrar_opcoes()
+                                if acao_opc == 'inicio':
+                                    sair_para_menu = True
+                                    break
+                                elif acao_opc == 'dificuldade':
+                                    sair_para_dificuldade = True
+                                    break
+                                    
+                            elif not fim and self.btn_dica.clicado(evento):
+                                if jogo.pode_pedir_dica():
+                                    texto_dica = jogo.pedir_dica()
+                                    sons.tocar('acerto')
+                                    
+                                    popup_d = PopupDica(
+                                        int(LARGURA * 0.6),
+                                        int(ALTURA * 0.6),
+                                        fonte_popup,
+                                        fonte_pequena_popup,
+                                        texto_dica,
+                                        jogo.pode_pedir_dica()
+                                    )
+                                    acao_dica = popup_d.mostrar(tela)
+                                    
+                                    if acao_dica == 'proxima' and jogo.pode_pedir_dica():
+                                        texto_dica2 = jogo.pedir_dica()
+                                        popup_d2 = PopupDica(
+                                            int(LARGURA * 0.6),
+                                            int(ALTURA * 0.6),
+                                            fonte_popup,
+                                            fonte_pequena_popup,
+                                            texto_dica2,
+                                            False
+                                        )
+                                        popup_d2.mostrar(tela)
+                                else:
+                                    sons.tocar('erro')
+
+                    if sair_para_menu:
+                        break
+                    
+                    if sair_para_dificuldade:
+                        popup_dif = PopupDificuldade(
+                            int(LARGURA * 0.60), int(ALTURA * 0.80),
+                            fonte_popup, fonte_pequena_popup
+                        )
+                        nova_escolha = popup_dif.mostrar(tela)
+                        mapa_dificuldade = {
+                            'Fácil': 'facil', 'Normal': 'normal',
+                            'Difícil': 'dificil', 'Secreta': 'secreta'
+                        }
+                        if nova_escolha in mapa_dificuldade:
+                            dificuldade = mapa_dificuldade[nova_escolha]
                             jogo = JogoForca(BANCO_PALAVRAS, dificuldade)
                             fim = False
-                            aviso = ''
                             som_fim_tocado = False
+                            sair_para_dificuldade = False
+                            continue
+                        else:
+                            # Se fechar o popup de dificuldade, apenas continua o jogo atual
+                            sair_para_dificuldade = False
 
-    def _clicou_reiniciar(self, evento):
-        rect_reiniciar = pygame.Rect(self.layout['x_textos_centro'] - 300, self.layout['y_aviso'] - 20, 600, 60)
-        return rect_reiniciar.collidepoint(evento.pos)
+                    if jogo.venceu() or jogo.perdeu():
+                        fim = True
+                        if not som_fim_tocado:
+                            if jogo.venceu():
+                                sons.tocar('vitoria')
+                            else:
+                                sons.tocar('derrota')
+                            som_fim_tocado = True
+
+                # Se saiu para o menu no meio do jogo, quebra o loop da partida e volta para tela_inicio
+                if sair_para_menu:
+                    break 
+
+                # Popup de Fim de Jogo (só se o jogo terminou de verdade)
+                if fim:
+                    popup_fim = PopupFimDeJogo(
+                        int(LARGURA * 0.6), 
+                        int(ALTURA * 0.75), 
+                        fonte_popup, 
+                        fonte_pequena_popup,
+                        jogo.venceu(),
+                        jogo.get_palavra()
+                    )
+                    escolha = popup_fim.mostrar(tela)
+                    
+                    if escolha == 'jogar':
+                        continue
+                    else:
+                        break
 
 
 def main() -> None:

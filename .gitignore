@@ -1,48 +1,6 @@
-# flake8
-# --- Python ---
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
 build/
-develop-eggs/
 dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# --- Ambientes Virtuais ---
-.venv/
+__pycache__/
+*.pyc
 venv/
-ENV/
-env/
-.env
-
-# --- PyInstaller (Específico para seu projeto) ---
-# Geralmente os arquivos .spec são gerados automaticamente
-*.manifest
-*.spec
-# A pasta build/ e dist/ já foram cobertas acima, mas o PyInstaller também gera:
-pip-log.txt
-pip-delete-this-directory.txt
-
-# --- IDEs e Editores ---
-.idea/
-.vscode/
-*.swp
-*.swo
-*~
-
-# --- Sistema Operacional ---
-.DS_Store
-Thumbs.db
+.venv/

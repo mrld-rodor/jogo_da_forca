@@ -1,16 +1,17 @@
 # -*- mode: python ; coding: utf-8 -*-
-
+# Spec multiplataforma: funciona igual no Windows e no Linux.
+# Uso: pyinstaller JogoDaForca.spec
 
 a = Analysis(
     ['forca_pygame.py'],
     pathex=[],
     binaries=[],
-    datas=[('assets', 'assets')],
+    datas=[('forca_assets', 'forca_assets')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=['numpy', 'tkinter', 'unittest', 'pytest'],
     noarchive=False,
     optimize=0,
 )
@@ -26,8 +27,7 @@ exe = EXE(
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,
-    upx_exclude=[],
+    upx=False,
     runtime_tmpdir=None,
     console=False,
     disable_windowed_traceback=False,

@@ -1,9 +1,17 @@
 # config.py
 import os
+import sys
 import pygame
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-ASSETS_DIR = os.path.join(BASE_DIR, "forca_assets")
+
+def resource_path(*partes):
+    """Caminho de um recurso, tanto a correr via Python como dentro do executavel (PyInstaller)."""
+    base = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base, *partes)
+
+
+BASE_DIR = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
+ASSETS_DIR = resource_path("forca_assets")
 
 # Cores
 BRANCO = (255, 255, 255)
@@ -23,41 +31,43 @@ def get_fontes():
             pygame.font.Font(fonte_path, 48), pygame.font.Font(fonte_path, 32))
 
 def get_layout(largura, altura):
-    # Margens da área branca do caderno
-    margem_esq = int(largura * 0.12) 
-    margem_dir = int(largura * 0.08) 
-    margem_topo = int(altura * 0.12) 
-    margem_base = int(altura * 0.12) 
+    margem_esq = int(largura * 0.12)
+    margem_dir = int(largura * 0.08)
+    margem_topo = int(altura * 0.12)
+    margem_base = int(altura * 0.12)
     
-    area_util_w = largura - margem_esq - margem_dir
-    area_util_h = altura - margem_topo - margem_base
+    margem_icones = 60 
+    x_icones = largura - margem_dir - margem_icones
     
-    # Âncora fixa da direita
-    ancora_x_dir = largura - margem_dir - 40 
+    # AQUI ESTÁ A CORREÇÃO: Centraliza a palavra no espaço entre a forca e o HUD
+    # A forca ocupa até ~40% da tela, o HUD fica nos 90%. O centro lógico é 65% da tela.
+    x_textos_centro = int(largura * 0.65)
     
     return {
         # --- ZONA ESQUERDA (FORCA) ---
-        # Movida um pouco mais para a esquerda e para baixo
-        'x_forca_centro': margem_esq + int(area_util_w * 0.20),
-        'y_forca_centro': margem_topo + int(area_util_h * 0.60),
-        'altura_forca': int(area_util_h * 0.55),
+        'x_forca_centro': margem_esq + int(largura * 0.18),
+        'y_forca_centro': int(altura * 0.65), 
+        'altura_forca': int(altura * 0.45), 
         
         # --- ZONA DIREITA (TEXTOS) ---
-        # A palavra sobe um pouco e os textos ficam mais próximos
-        'x_textos_centro': margem_esq + int(area_util_w * 0.68),
-        'y_palavra': margem_topo + int(area_util_h * 0.15),
-        'y_letras': margem_topo + int(area_util_h * 0.45),
-        'y_input': margem_topo + int(area_util_h * 0.62),
-        'y_aviso': margem_topo + int(area_util_h * 0.72),
+        'x_textos_centro': x_textos_centro,  # AGORA CENTRALIZADO EM 65% DA TELA
         
-        # Limites para a palavra não vazar
-        'x_palavra_min': margem_esq + int(area_util_w * 0.45),
-        'x_palavra_max': largura - margem_dir - 40,
+        # Y dos textos
+        'y_palavra': int(altura * 0.32), 
+        'y_letras': int(altura * 0.55),
+        'y_input': int(altura * 0.75),
         
-        # --- HUD (Alinhado à direita) ---
-        'hud_x_dir': ancora_x_dir,
-        'hud_y_topo': margem_topo + 40,
-        'hud_y_base': altura - margem_base - 50,
+        # Limites para a palavra não vazar para os lados
+        'limite_palavra_esq': margem_esq + int((largura - margem_esq - margem_dir) * 0.30),
+        'limite_palavra_dir': x_icones - 120,
+        
+        # --- HUD ---
+        'hud_x_dir': x_icones,
+        'hud_y_topo': margem_topo + margem_icones,
+        'hud_y_base': altura - margem_base - margem_icones,
+        
+        # --- LARGURA MÁXIMA DE TEXTO (Para quebra de linha) ---
+        'largura_max_texto': int(largura * 0.45)
     }
 
 def carregar_imagem(rel_path, escala=None):
