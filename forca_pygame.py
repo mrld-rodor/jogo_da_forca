@@ -9,12 +9,12 @@ from jogo_forca import JogoForca
 from ui.telas import TelaInicio
 from ui.popup import Popup, PopupOpcoes, PopupRegras, PopupDificuldade, PopupFimDeJogo, PopupDica
 from config import (
-    BRANCO, PRETO, VERMELHO, VERDE, CINZA_MEDIO,
-    get_fontes, get_layout, carregar_imagem, ASSETS_DIR
+    PRETO, get_fontes, get_layout, carregar_imagem, ASSETS_DIR
 )
-from ui.efeitos import gradiente_animado, efeito_flashes
 from ui.forca import ForcaDesenhavel
 from ui.sons import GerenciadorSons
+from ui.intro import tocar_intro
+
 
 pygame.init()
 info = pygame.display.Info()
@@ -109,45 +109,10 @@ def tela_inicio() -> str:
 
 
 def tela_abertura() -> None:
-    tempo_inicial = pygame.time.get_ticks()
-    duracao_efeito = 2200
-    duracao_titulo = 1200
-    rodando = True
-    efeito_finalizado = False
-    titulo_str = 'Jogo da Forca'
-    letras_titulo = list(titulo_str)
-    letras_mostradas = 0
-    tempo_letra = 80
-    flashes = []
-    grad_y = 0
-    while rodando:
-        gradiente_animado(tela, LARGURA, ALTURA, grad_y)
-        grad_y += 2
-        tempo_atual = pygame.time.get_ticks() - tempo_inicial
-        if random.random() < 0.08:
-            flashes.append((random.randint(0, LARGURA), random.randint(0, ALTURA), random.randint(32, 64)))
-        flashes = efeito_flashes(tela, flashes)
-        if tempo_atual < duracao_efeito:
-            letras_mostradas = min(len(letras_titulo), int(tempo_atual / tempo_letra))
-            titulo = ''.join(letras_titulo[:letras_mostradas])
-            texto = fonte.render(titulo, True, VERMELHO)
-            tela.blit(texto, (LARGURA // 2 - texto.get_width() // 2, ALTURA // 2 - texto.get_height() // 2))
-        else:
-            if not efeito_finalizado:
-                efeito_finalizado = True
-                tempo_titulo = pygame.time.get_ticks()
-            texto = fonte.render(titulo_str, True, VERMELHO)
-            tela.blit(texto, (LARGURA // 2 - texto.get_width() // 2, ALTURA // 2 - texto.get_height() // 2))
-            if pygame.time.get_ticks() - tempo_titulo > duracao_titulo:
-                rodando = False
-        pygame.display.flip()
-        for evento in pygame.event.get():
-            if evento.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            if evento.type == pygame.KEYDOWN:
-                rodando = False
-
+    """Reproduz o video de abertura. Se nao existir ou falhar, segue direto para o menu."""
+    caminho = os.path.join(ASSETS_DIR, 'video', 'intro.mp4')
+    if os.path.exists(caminho):
+        tocar_intro(tela, caminho, sons)
 
 class JogoForcaApp:
     def __init__(self) -> None:
