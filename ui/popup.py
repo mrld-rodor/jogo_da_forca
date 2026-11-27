@@ -125,7 +125,7 @@ class Slider:
 
 
 # -----------------------------------------------------------------
-# POPUP: OPÇÕES DE ÁUDIO
+# POPUP: OPÇÕES
 # -----------------------------------------------------------------
 class PopupOpcoes:
     def __init__(self, largura, altura, fonte_titulo, fonte_texto):
@@ -145,7 +145,7 @@ class PopupOpcoes:
 
         # Sliders
         bar_w = int(largura * 0.55)
-        bar_h = 30
+        bar_h = 34
         self.slider_musica = Slider(pygame.Rect(0, 0, bar_w, bar_h))
         self.slider_efeitos = Slider(pygame.Rect(0, 0, bar_w, bar_h))
 
@@ -157,17 +157,17 @@ class PopupOpcoes:
         for s in (self.slider_musica, self.slider_efeitos):
             s.definir_imagens(img_bg, img_fill, img_knob_norm, img_knob_press)
 
-        # Botões de mute
-        icone_size = (100, 100)
+        # Mutes
+        icone_size = (80, 80)
         self.img_mute_on = carregar_imagem('buttons/btn_round_mute_normal.png', icone_size)
         self.img_mute_off = carregar_imagem('buttons/btn_round_sound_normal.png', icone_size)
 
         self.btn_mute_musica_rect = None
         self.btn_mute_efeitos_rect = None
 
-        # ---- NOVOS BOTÕES (Início e Dificuldade) ----
-        btn_acao_w = int(largura * 0.30)
-        btn_acao_h = 70
+        # ---- Botões Início / Dificuldade (já existentes) ----
+        btn_acao_w = int(largura * 0.28)
+        btn_acao_h = 65
         self.btn_inicio = pygame.Rect(0, 0, btn_acao_w, btn_acao_h)
         self.img_inicio_norm = carregar_imagem('buttons/btn_white_normal.png', (btn_acao_w, btn_acao_h))
         self.img_inicio_hover = carregar_imagem('buttons/btn_white_hover.png', (btn_acao_w, btn_acao_h))
@@ -178,6 +178,12 @@ class PopupOpcoes:
         self.img_dif_hover = carregar_imagem('buttons/btn_yellow_hover.png', (btn_acao_w, btn_acao_h))
         self.img_dif_press = carregar_imagem('buttons/btn_yellow_pressed.png', (btn_acao_w, btn_acao_h))
 
+        # ---- NOVO: Botão Créditos ----
+        self.btn_creditos = pygame.Rect(0, 0, btn_acao_w, btn_acao_h)
+        self.img_cred_norm = carregar_imagem('buttons/btn_white_normal.png', (btn_acao_w, btn_acao_h))
+        self.img_cred_hover = carregar_imagem('buttons/btn_white_hover.png', (btn_acao_w, btn_acao_h))
+        self.img_cred_press = carregar_imagem('buttons/btn_white_pressed.png', (btn_acao_w, btn_acao_h))
+
         self._vol_musica_antes = 1.0
         self._vol_efeitos_antes = 1.0
 
@@ -185,7 +191,7 @@ class PopupOpcoes:
         overlay = pygame.Surface(tela.get_size(), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 160))
         rodando = True
-        acao = 'fechar'  # Retorno padrão
+        acao = 'fechar'
 
         self.slider_musica.valor = sons.get_volume_musica()
         self.slider_efeitos.valor = sons.get_volume_efeitos()
@@ -195,7 +201,7 @@ class PopupOpcoes:
             rect = self.painel.get_rect(center=tela.get_rect().center)
             tela.blit(self.painel, rect)
 
-            # ---- Botão fechar ----
+            # Botão fechar
             bw, bh = self.btn_fechar_size
             margem = 15
             self.btn_fechar_rect = pygame.Rect(rect.right - bw - margem, rect.top + margem, bw, bh)
@@ -204,15 +210,14 @@ class PopupOpcoes:
             img_fechar = (self.img_fechar_press if self.btn_fechar_rect.collidepoint(mouse_pos) and mouse_pressed else self.img_fechar_norm)
             tela.blit(img_fechar, self.btn_fechar_rect)
 
-            # ---- Título ----
+            # Título
             txt_titulo = self.fonte_titulo.render("Opções", True, PRETO)
             tela.blit(txt_titulo, (rect.centerx - txt_titulo.get_width() // 2, rect.y + int(rect.height * 0.05)))
 
-            # ---- Sliders ----
+            # Sliders
             slider_x = rect.centerx - self.slider_musica.rect.width // 2
-            slider_y_musica = rect.y + int(rect.height * 0.25)
-            slider_y_efeitos = rect.y + int(rect.height * 0.45)
-
+            slider_y_musica = rect.y + int(rect.height * 0.22)
+            slider_y_efeitos = rect.y + int(rect.height * 0.42)
             self.slider_musica.rect.topleft = (slider_x, slider_y_musica)
             self.slider_efeitos.rect.topleft = (slider_x, slider_y_efeitos)
 
@@ -229,42 +234,45 @@ class PopupOpcoes:
             self.slider_musica.desenhar(tela)
             self.slider_efeitos.desenhar(tela)
 
-            # ---- Mutes ----
+            # Mutes
             icone_w, icone_h = self.img_mute_on.get_size()
             self.btn_mute_musica_rect = pygame.Rect(slider_x - icone_w - 30, slider_y_musica + (self.slider_musica.rect.height - icone_h) // 2, icone_w, icone_h)
             self.btn_mute_efeitos_rect = pygame.Rect(slider_x - icone_w - 30, slider_y_efeitos + (self.slider_efeitos.rect.height - icone_h) // 2, icone_w, icone_h)
-
             img_mute_mus = self.img_mute_on if self.slider_musica.valor == 0 else self.img_mute_off
             img_mute_ef = self.img_mute_on if self.slider_efeitos.valor == 0 else self.img_mute_off
             tela.blit(img_mute_mus, self.btn_mute_musica_rect)
             tela.blit(img_mute_ef, self.btn_mute_efeitos_rect)
 
-            # ---- NOVOS BOTÕES: Início e Dificuldade ----
-            gap = 20
-            total_w = self.btn_inicio.width + gap + self.btn_dificuldade.width
-            x_inicio_btn = rect.centerx - total_w // 2
-            y_btn = rect.y + int(rect.height * 0.72)
+            # ---- Linha de botões (Início, Dificuldade, Créditos) ----
+            gap = 15
+            total_w = self.btn_inicio.width * 3 + gap * 2
+            x_base = rect.centerx - total_w // 2
+            y_btn = rect.y + int(rect.height * 0.68)
 
-            self.btn_inicio.topleft = (x_inicio_btn, y_btn)
-            self.btn_dificuldade.topleft = (x_inicio_btn + self.btn_inicio.width + gap, y_btn)
+            self.btn_inicio.topleft = (x_base, y_btn)
+            self.btn_dificuldade.topleft = (x_base + self.btn_inicio.width + gap, y_btn)
+            self.btn_creditos.topleft = (x_base + 2 * (self.btn_inicio.width + gap), y_btn)
 
-            # Botão Início
-            if self.btn_inicio.collidepoint(mouse_pos):
-                img_i = self.img_inicio_press if mouse_pressed else self.img_inicio_hover
-            else:
-                img_i = self.img_inicio_norm
+            # Início
+            img_i = self.img_inicio_press if self.btn_inicio.collidepoint(mouse_pos) and mouse_pressed else (
+                self.img_inicio_hover if self.btn_inicio.collidepoint(mouse_pos) else self.img_inicio_norm)
             tela.blit(img_i, self.btn_inicio)
             txt_i = self.fonte_texto.render("Início", True, PRETO)
             tela.blit(txt_i, (self.btn_inicio.centerx - txt_i.get_width() // 2, self.btn_inicio.centery - txt_i.get_height() // 2))
 
-            # Botão Dificuldade
-            if self.btn_dificuldade.collidepoint(mouse_pos):
-                img_d = self.img_dif_press if mouse_pressed else self.img_dif_hover
-            else:
-                img_d = self.img_dif_norm
+            # Dificuldade
+            img_d = self.img_dif_press if self.btn_dificuldade.collidepoint(mouse_pos) and mouse_pressed else (
+                self.img_dif_hover if self.btn_dificuldade.collidepoint(mouse_pos) else self.img_dif_norm)
             tela.blit(img_d, self.btn_dificuldade)
             txt_d = self.fonte_texto.render("Dificuldade", True, PRETO)
             tela.blit(txt_d, (self.btn_dificuldade.centerx - txt_d.get_width() // 2, self.btn_dificuldade.centery - txt_d.get_height() // 2))
+
+            # Créditos
+            img_c = self.img_cred_press if self.btn_creditos.collidepoint(mouse_pos) and mouse_pressed else (
+                self.img_cred_hover if self.btn_creditos.collidepoint(mouse_pos) else self.img_cred_norm)
+            tela.blit(img_c, self.btn_creditos)
+            txt_c = self.fonte_texto.render("Créditos", True, PRETO)
+            tela.blit(txt_c, (self.btn_creditos.centerx - txt_c.get_width() // 2, self.btn_creditos.centery - txt_c.get_height() // 2))
 
             pygame.display.flip()
 
@@ -285,6 +293,9 @@ class PopupOpcoes:
                         rodando = False
                     elif self.btn_dificuldade.collidepoint(evento.pos):
                         acao = 'dificuldade'
+                        rodando = False
+                    elif self.btn_creditos.collidepoint(evento.pos):
+                        acao = 'creditos'
                         rodando = False
                     elif self.btn_mute_musica_rect.collidepoint(evento.pos):
                         if self.slider_musica.valor > 0:
@@ -611,7 +622,7 @@ class PopupFimDeJogo:
         return acao
 
 
-# Adicione ao final do ui/popup.py
+
 
 class PopupDica:
     def __init__(self, largura, altura, fonte_titulo, fonte_texto, dica_texto, pode_proxima):
@@ -713,3 +724,132 @@ class PopupDica:
                         rodando = False
 
         return acao
+
+# -----------------------------------------------------------------
+# NOVO POPUP: CRÉDITOS
+# -----------------------------------------------------------------
+class PopupCreditos:
+    def __init__(self, largura, altura, fonte_titulo, fonte_texto):
+        self.largura = largura
+        self.altura = altura
+        self.fonte_titulo = fonte_titulo
+        self.fonte_texto = fonte_texto
+
+        self.painel = carregar_imagem('ui/panel_large.png', (largura, altura))
+
+        # Botão fechar (X)
+        bw, bh = 144, 144
+        self.btn_fechar_size = (bw, bh)
+        self.img_fechar_norm = carregar_imagem('buttons/btn_round_close_normal.png', (bw, bh))
+        self.img_fechar_press = carregar_imagem('buttons/btn_round_close_pressed.png', (bw, bh))
+        self.btn_fechar_rect = None
+
+        # --- COLUNA 1 ---
+        self.coluna_esquerda = [
+            ("Sobre o Jogo", [
+                "Jogo da Forca (Hangman)",
+                "Versao 1.0.0 (2025)",
+                "Desenvolvido em Python 3.11",
+                "Engine Grafica: Pygame 2.6.1",
+            ]),
+            ("Tecnologias", [
+                "Python 3 + Pygame + NumPy",
+                "Assets: Caderno Ilustrado",
+                "Fonte: Poppins Bold",
+                "Build: PyInstaller",
+            ]),
+        ]
+
+        # --- COLUNA 2 ---
+        self.coluna_direita = [
+            ("Desenvolvedor", [
+                "Amiraldo Rodrigues",
+                "GitHub: github.com/mrld-rodor",
+                "Email: mrldtecnology@gmail.com",
+                "Localizacao: Lagos - Portugal",
+            ]),
+        ]
+
+    def _desenhar_bloco(self, tela, blocos, x, y, largura_max):
+        """Desenha uma lista de blocos (título + linhas) e retorna o Y final."""
+        for titulo, linhas in blocos:
+            # Título do bloco
+            txt_t = self.fonte_titulo.render(titulo, True, PRETO)
+            tela.blit(txt_t, (x, y))
+            y += txt_t.get_height() + 10
+
+            # Linhas do bloco (com quebra automática)
+            for linha in linhas:
+                palavras = linha.split(' ')
+                linha_atual = ""
+                for p in palavras:
+                    teste = (linha_atual + " " + p).strip()
+                    if self.fonte_texto.size(teste)[0] <= largura_max:
+                        linha_atual = teste
+                    else:
+                        if linha_atual:
+                            txt = self.fonte_texto.render(linha_atual, True, PRETO)
+                            tela.blit(txt, (x + 20, y))
+                            y += txt.get_height() + 4
+                        linha_atual = p
+                if linha_atual:
+                    txt = self.fonte_texto.render(linha_atual, True, PRETO)
+                    tela.blit(txt, (x + 20, y))
+                    y += txt.get_height() + 4
+
+            y += 25  # espaço entre blocos
+
+        return y
+
+    def mostrar(self, tela):
+        overlay = pygame.Surface(tela.get_size(), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 160))
+        rodando = True
+
+        while rodando:
+            tela.blit(overlay, (0, 0))
+            rect = self.painel.get_rect(center=tela.get_rect().center)
+            tela.blit(self.painel, rect)
+
+            # Botão fechar (X)
+            bw, bh = self.btn_fechar_size
+            margem = 15
+            self.btn_fechar_rect = pygame.Rect(rect.right - bw - margem, rect.top + margem, bw, bh)
+            mouse_pos = pygame.mouse.get_pos()
+            mouse_pressed = pygame.mouse.get_pressed()[0]
+            img_fechar = (self.img_fechar_press if self.btn_fechar_rect.collidepoint(mouse_pos) and mouse_pressed else self.img_fechar_norm)
+            tela.blit(img_fechar, self.btn_fechar_rect)
+
+            # Título principal
+            txt_main = self.fonte_titulo.render("Creditos", True, PRETO)
+            tela.blit(txt_main, (rect.centerx - txt_main.get_width() // 2, rect.y + 35))
+
+            # ---- LAYOUT EM 2 COLUNAS ----
+            margem_texto = 70
+            largura_coluna = (rect.width - 2 * margem_texto - 40) // 2  # 40px de gap entre colunas
+
+            x_col1 = rect.x + margem_texto
+            x_col2 = rect.x + margem_texto + largura_coluna + 40
+            y_inicial = rect.y + 130
+
+            # Coluna 1 (Sobre o Jogo + Tecnologias)
+            self._desenhar_bloco(tela, self.coluna_esquerda, x_col1, y_inicial, largura_coluna)
+
+            # Coluna 2 (Desenvolvedor)
+            self._desenhar_bloco(tela, self.coluna_direita, x_col2, y_inicial, largura_coluna)
+
+            # Rodapé
+            txt_rodape = self.fonte_texto.render("Pressione ESC ou clique no X para fechar", True, VERDE)
+            tela.blit(txt_rodape, (rect.centerx - txt_rodape.get_width() // 2, rect.bottom - 75))
+
+            pygame.display.flip()
+
+            for evento in pygame.event.get():
+                if evento.type == pygame.QUIT:
+                    pygame.quit()
+                    import sys; sys.exit()
+                if evento.type == pygame.KEYDOWN and evento.key == pygame.K_ESCAPE:
+                    rodando = False
+                if evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
+                    if self.btn_fechar_rect.collidepoint(evento.pos):
+                        rodando = False

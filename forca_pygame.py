@@ -7,7 +7,7 @@ import os
 from palavras import BANCO_PALAVRAS
 from jogo_forca import JogoForca
 from ui.telas import TelaInicio
-from ui.popup import Popup, PopupOpcoes, PopupRegras, PopupDificuldade, PopupFimDeJogo, PopupDica
+from ui.popup import Popup, PopupOpcoes, PopupRegras, PopupDificuldade, PopupFimDeJogo, PopupDica, PopupCreditos 
 from config import (
     PRETO, get_fontes, get_layout, carregar_imagem, ASSETS_DIR
 )
@@ -32,7 +32,7 @@ forca_ui = ForcaDesenhavel(LARGURA, ALTURA, altura_alvo=layout['altura_forca'])
 forca_ui.definir_centro(layout['x_forca_centro'], layout['y_forca_centro'])
 
 sons = GerenciadorSons()
-sons.iniciar_musica()
+# sons.iniciar_musica()  # <-- música só começa depois da intro 
 
 
 class BotaoIcone:
@@ -99,13 +99,47 @@ def tela_inicio() -> str:
                 if escolha in mapa_dificuldade:
                     return mapa_dificuldade[escolha]
             elif acao == 'opcoes':
-                mostrar_opcoes()
+                retorno_opc = mostrar_opcoes()
+                if retorno_opc == 'creditos':
+                    popup_cred = PopupCreditos(
+                        int(LARGURA * 0.75),
+                        int(ALTURA * 0.75),
+                        fonte_popup,
+                        fonte_pequena_popup
+                    )
+                    popup_cred.mostrar(tela)
             elif acao == 'regras':
                 popup_regras = PopupRegras(int(LARGURA * 0.75), int(ALTURA * 0.75), fonte_popup, fonte_pequena_popup)
                 popup_regras.mostrar(tela)
+            
             elif acao == 'sair':
                 pygame.quit()
                 sys.exit()
+
+
+def pausa_preta(tela, sons=None, duracao_ms=1500):
+    """Mostra uma tela preta em silêncio por alguns instantes."""
+    # Garante silêncio na pausa
+    if sons is not None:
+        if hasattr(sons, "musica") and sons.musica:
+            sons.musica.stop()
+        if hasattr(sons, "parar_tudo"):  # se existir
+            sons.parar_tudo()
+
+    tela.fill((0, 0, 0))
+    pygame.display.flip()
+
+    relogio = pygame.time.Clock()
+    tempo = 0
+    while tempo < duracao_ms:
+        dt = relogio.tick(60)
+        tempo += dt
+        for evento in pygame.event.get():
+            if evento.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if evento.type == pygame.KEYDOWN and evento.key == pygame.K_ESCAPE:
+                return
 
 
 def tela_abertura() -> None:
@@ -113,6 +147,8 @@ def tela_abertura() -> None:
     caminho = os.path.join(ASSETS_DIR, 'video', 'intro.mp4')
     if os.path.exists(caminho):
         tocar_intro(tela, caminho, sons)
+    pausa_preta(tela, sons)   
+
 
 class JogoForcaApp:
     def __init__(self) -> None:
@@ -230,6 +266,8 @@ class JogoForcaApp:
 
     def rodar(self) -> None:
         tela_abertura()
+        sons.iniciar_musica()  # <-- música só começa aqui
+
         while True:
             dificuldade = tela_inicio()
             
@@ -292,6 +330,14 @@ class JogoForcaApp:
                                 elif acao_opc == 'dificuldade':
                                     sair_para_dificuldade = True
                                     break
+                                elif acao_opc == 'creditos':   # NOVO
+                                    popup_cred = PopupCreditos(
+                                        int(LARGURA * 0.75),
+                                        int(ALTURA * 0.75),
+                                        fonte_popup,
+                                        fonte_pequena_popup
+                                    )
+                                    popup_cred.mostrar(tela)
                                     
                             elif not fim and self.btn_dica.clicado(evento):
                                 if jogo.pode_pedir_dica():
